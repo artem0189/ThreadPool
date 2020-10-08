@@ -6,6 +6,11 @@ void PrintHelloWorld()
     std::cout << "Hello, world!" << std::endl;
 }
 
+void ErrorFunction()
+{
+    throw "Error";
+}
+
 int main()
 {
     ThreadPool* pool = new ThreadPool();

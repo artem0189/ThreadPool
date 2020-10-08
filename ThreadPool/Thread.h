@@ -1,20 +1,26 @@
 #pragma once
 
+#include "Logger.h"
 #include <windows.h>
 #include <iostream>
 #include <functional>
+#include <string>
 
 class Thread
 {
 public:
-	Thread()
+	bool isActive = false;
+
+	Thread(int id, Logger* logger)
 	{
-		thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Execute, this, CREATE_SUSPENDED, NULL);
+		_id = id;
+		_logger = logger;
+		_thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Execute, this, CREATE_SUSPENDED, NULL);
 	}
 
 	~Thread()
 	{
-		CloseHandle(thread);
+		Kill();
 	}
 
 	void Start(std::function<void()> func)
@@ -23,23 +29,38 @@ public:
 		WakeUp();
 	}
 private:
-	HANDLE thread;
+	int _id;
+	HANDLE _thread;
 	std::function<void()> _func;
+	Logger* _logger;
 
 	void WakeUp()
 	{
-		ResumeThread(thread);
+		isActive = true;
+		ResumeThread(_thread);
 	}
 
 	void Sleep()
 	{
-		SuspendThread(thread);
+		isActive = false;
+		SuspendThread(_thread);
+	}
+
+	void Kill()
+	{
+		TerminateThread(_thread, 0);
+		CloseHandle(_thread);
 	}
 
 	static void Execute(Thread* currentObject)
 	{
 		while (true) {
-			currentObject->_func();
+			try {
+				currentObject->_func();
+			}
+			catch (...) {
+				currentObject->_logger->Output("Было поймано исключение потоком номер: " + std::to_string(currentObject->_id));
+			}
 			currentObject->Sleep();
 		}
 	}
